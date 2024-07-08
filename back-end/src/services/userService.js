@@ -1,6 +1,8 @@
 import { where } from "sequelize";
 import db from "../models/index";
 import bcrypt from "bcryptjs";
+import { Op } from "sequelize";
+const _ = require("lodash");
 const salt = bcrypt.genSaltSync(10);
 let getAllUser = async () => {
   let data = await db.User.findAll();
@@ -56,8 +58,47 @@ let deleteUserById = async (data) => {
     DT: "",
   };
 };
+
+// UserLogin
+let userLogin = async (userData) => {
+  let userFounded = await db.User.findOne({
+    where: {
+      [Op.or]: [
+        { email: userData.userName },
+        { phoneNumber: userData.userName },
+      ],
+    },
+  });
+  if (userFounded) {
+    let comparePassword = bcrypt.compareSync(
+      userData.password,
+      userFounded.password
+    );
+    const { password, createdAt, updatedAt, ...respondData } =
+      userFounded.dataValues;
+    if (comparePassword) {
+      return {
+        EM: "Login Success!",
+        EC: 0,
+        DT: respondData,
+      };
+    }
+    return {
+      EM: "Wrong password!",
+      EC: 1,
+      DT: "",
+    };
+  }
+  return {
+    EM: "User Not Found!",
+    EC: 1,
+    DT: null,
+  };
+};
+
 module.exports = {
   createUser,
   getAllUser,
   deleteUserById,
+  userLogin,
 };
